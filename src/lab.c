@@ -1,4 +1,5 @@
-#include "string.h"
+#include <ctype.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <pwd.h>
@@ -54,7 +55,10 @@ char **cmd_parse(char const *line)
 {
   // getting pointer to first non-whitespace character of line (must be done for cmd_free to work properly)
   // this is unneccesarry if trim_white is called on line first, but is here for safety in case it isn't
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"//lineWithoutLeadingWhitespace is not being used to modify the data of line
   char *lineWithoutLeadingWhitespace = line;
+  #pragma GCC diagnostic pop
   while (isspace((unsigned char)*lineWithoutLeadingWhitespace))
   {
     lineWithoutLeadingWhitespace++;
@@ -122,6 +126,7 @@ char *trim_white(char *line)
 
 bool do_builtin(struct shell *sh, char **argv)
 {
+  UNUSED(sh)
   if (strcmp(argv[0], EXIT_COMMAND) == 0)
   {
     return true;

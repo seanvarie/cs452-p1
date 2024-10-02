@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 
     trim_white(line);
 
-    if (NULL == line[0])
+    if ('\0' == line[0])
     { // blank command
       free(line);
       backgroundJobsList = evaluate_background_jobs(backgroundJobsList, false);
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     if (BACKGROUND_CHAR == line[strlen(line) - 1])
     {
       backgroundCurrentJob = true;
-      line[strlen(line) - 1] = NULL;
+      line[strlen(line) - 1] = '\0';
     }
 
     cmd = cmd_parse(line);
@@ -44,8 +44,8 @@ int main(int argc, char *argv[])
     {
       break;
     }
-    isBuiltinCmd = do_builtin(NULL, cmd);
     backgroundJobsList = evaluate_background_jobs(backgroundJobsList, false);
+    isBuiltinCmd = do_builtin(NULL, cmd);
     if (!isBuiltinCmd)
     {
       int forkResult = fork();
