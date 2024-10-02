@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     backgroundJobsList = evaluate_background_jobs(backgroundJobsList, false);
     if (!isBuiltinCmd)
     {
-      int forkResult = fork(); // TODO: error handling?
+      int forkResult = fork();
       if (forkResult == 0)
       {
         execute_command(cmd, sh, backgroundCurrentJob);
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        waitpid(forkResult, NULL, 0); // TODO: error handling
+        waitpid(forkResult, NULL, 0);
         cmd_free(cmd);
         cmd = NULL;
       }

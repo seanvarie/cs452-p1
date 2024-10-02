@@ -11,7 +11,7 @@
 #define EXIT_COMMAND "exit"
 #define CHANGE_DIRECTORY_COMMAND "cd"
 #define LIST_JOBS_COMMAND "jobs"
-#define LIST_HISTORY_COMMAND "history" // TODO: check what this should be
+#define LIST_HISTORY_COMMAND "history"
 #define BACKGROUND_CHAR '&'
 
 #define lab_VERSION_MAJOR 1

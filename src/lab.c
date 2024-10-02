@@ -17,12 +17,12 @@ char *get_prompt(const char *env)
 
   if (envPrompt == NULL)
   {
-    retVal = malloc(sizeof(char) * (strlen(DEFAULT_PROMPT) + 1)); // TODO: error handling
+    retVal = malloc(sizeof(char) * (strlen(DEFAULT_PROMPT) + 1));
     strcpy(retVal, DEFAULT_PROMPT);
   }
   else
   {
-    retVal = malloc(sizeof(char) * (strlen(envPrompt) + 1)); // TODO: error handling
+    retVal = malloc(sizeof(char) * (strlen(envPrompt) + 1));
     strcpy(retVal, envPrompt);
   }
 
@@ -45,7 +45,7 @@ int change_dir(char **dir)
     directory = userInfo->pw_dir;
   }
 
-  retVal = chdir(directory); // TODO: error handling
+  retVal = chdir(directory);
 
   return retVal;
 }
@@ -60,13 +60,13 @@ char **cmd_parse(char const *line)
     lineWithoutLeadingWhitespace++;
   }
 
-  char *lineCopy = malloc(sizeof(char) * (strlen(lineWithoutLeadingWhitespace) + 1)); // TODO: error handling
+  char *lineCopy = malloc(sizeof(char) * (strlen(lineWithoutLeadingWhitespace) + 1));
 
   strcpy(lineCopy, lineWithoutLeadingWhitespace);
 
   long max_args = sysconf(_SC_ARG_MAX);
 
-  char **retVal = malloc(sizeof(char *) * (max_args + 2)); // TODO: error handling
+  char **retVal = malloc(sizeof(char *) * (max_args + 2));
 
   // split lineCopy into tokens and store pointers to each in retVal
   int i = 0;
@@ -152,7 +152,6 @@ void sh_init(struct shell *sh)
 {
   sh->prompt = get_prompt(PROMPT_ENV_VARIABLE);
 
-  // TODO: fix tabs (spaces)
   /* See if we are running interactively.  */
   sh->shell_terminal = STDIN_FILENO;
   sh->shell_is_interactive = isatty(sh->shell_terminal);
