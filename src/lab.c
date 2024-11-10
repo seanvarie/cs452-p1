@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/time.h> /* for gettimeofday system call */
 #include <limits.h>
+#include <stdio.h>
 #include "lab.h"
 
 /**
@@ -191,6 +192,32 @@ void mergesort_mt(int *A, int n, int num_thread){
 void *parallel_mergesort(void *args){
     mergesort_s(((struct parallel_args *)args)->A, ((struct parallel_args *)args)->start,((struct parallel_args *)args)->end);
     pthread_exit(NULL);
+}
+
+int myMain(int argc, char **argv){
+
+    if (argc < 3)
+      {
+        printf("usage: %s <array_size> <num_threads>", argv[0]);
+        return 1;
+      }
+    int size = atoi(argv[1]);
+    int t = atoi(argv[2]);
+
+    int *A_ = malloc(sizeof(int) *size);
+    srandom(1);
+    for (int i = 0; i < size; i++)
+      A_[i] = random() % 100000;
+
+    double end = 0;
+    double start = getMilliSeconds();
+    mergesort_mt(A_, size, t);
+    end = getMilliSeconds();
+    printf("%f %d\n",end-start, t);
+
+    free(A_);
+
+    return 0;
 }
 
 double getMilliSeconds()
