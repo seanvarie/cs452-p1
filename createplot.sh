@@ -35,7 +35,7 @@ if [ -e ./myprogram ]; then
         echo -ne "running $n thread \r"
         ./myprogram "$size" "$n" >> data.dat
     done
-    gnuplot -p -e "set terminal 'png'; set output '$name.png'; plot 'data.dat' with linespoint;"
+    gnuplot -e "filename='$name.png'" graph.plt
     echo "Created plot $name.png from data.dat file"
 else
     echo "myprogram is not present in the build directory. Did you compile your code?"
