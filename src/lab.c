@@ -4,8 +4,6 @@
 #include <limits.h>
 #include "lab.h"
 
-int zero = 0;
-
 /**
  * @brief Standard insertion sort that is faster than merge sort for small array's
  *
@@ -167,23 +165,27 @@ void mergesort_mt(int *A, int n, int num_thread){
         pthread_join(mergesortArgs[i].tid, NULL);
     }
 
-    int intermediaryArray[n];
+    int * intermediaryArray = malloc(sizeof(int) * n);
 
     for(int i = 0; i < n; i++){
         int smallestFound = 0;
-        for(int i = 0; i < num_thread; i++){
-            if(*mergesortArgs[i].A < *mergesortArgs[smallestFound].A){
-              smallestFound = i;
+        for(int j = 0; j < num_thread; j++){
+            if(*mergesortArgs[j].A < *mergesortArgs[smallestFound].A){
+              smallestFound = j;
             }
         }
         intermediaryArray[i] = *mergesortArgs[smallestFound].A;
         *mergesortArgs[smallestFound].A = INT_MAX;
-        mergesortArgs[smallestFound].A += 1;;
+        if(mergesortArgs[smallestFound].A + 1 < A + n){//ensure no array pointers in mergesortArgs go out of bounds
+            mergesortArgs[smallestFound].A += 1;
+        }
     }
 
     for(int i = 0; i < n; i++){
         A[i] = intermediaryArray[i];
-    }    
+    }
+    
+    free(intermediaryArray);
 }
 
 void *parallel_mergesort(void *args){
