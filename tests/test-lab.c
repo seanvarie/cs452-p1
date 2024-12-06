@@ -8,7 +8,7 @@
 #endif
 #include "harness/unity.h"
 #include "../src/lab.h"
-
+#include <string.h>
 
 void setUp(void) {
   // set stuff up here
@@ -17,8 +17,6 @@ void setUp(void) {
 void tearDown(void) {
   // clean stuff up here
 }
-
-
 
 /**
  * Check the pool to ensure it is full.
@@ -50,6 +48,11 @@ void check_buddy_pool_full(struct buddy_pool *pool)
  */
 void check_buddy_pool_empty(struct buddy_pool *pool)
 {
+  void * mallocResult = buddy_malloc(pool, 1);
+  if(NULL != mallocResult){
+    buddy_free(pool, mallocResult);
+    assert(false);
+  }
   //An empty pool should have all values 0-(kval) as empty
   for (size_t i = 0; i <= pool->kval_m; i++)
     {
@@ -114,6 +117,202 @@ void test_buddy_malloc_one_large(void)
 }
 
 /**
+ * Tests the allocation of one massive block that is too big for the memory pool and 
+ * makes sure that the call fails correctly.
+ */
+void test_buddy_malloc_one_too_large(void)
+{
+  fprintf(stderr, "->Test attempting allocating too large a block\n");
+  struct buddy_pool pool;
+  int kval = MIN_K;
+  size_t size = UINT64_C(1) << kval;
+  buddy_init(&pool, size);
+  
+  //Ask for larger than an exact K value to be allocated. This test makes assumptions on
+  //the internal details of buddy_init.
+  size_t ask = size - sizeof(struct avail) + 1;
+  void *mem = buddy_malloc(&pool, ask);
+  assert(mem == NULL);
+  assert(errno = ENOMEM);
+
+  //Make sure correct kval was allocated
+  check_buddy_pool_full(&pool);
+  buddy_destroy(&pool);
+}
+
+/**
+ * Tests the allocation of one massive block that is too big for the memory pool after 
+ * a 1 byte malloc and makes sure that the call fails correctly.
+ */
+void test_buddy_malloc_one_byte_and_one_too_large(void)
+{
+  fprintf(stderr, "->Test allocating 1 byte, attempting allocating too large a block and freeing the 1 byte\n");
+  struct buddy_pool pool;
+  int kval = MIN_K;
+  size_t size = UINT64_C(1) << kval;
+  buddy_init(&pool, size);
+
+  void *mem = buddy_malloc(&pool, 1);
+  assert(mem != NULL);
+  
+  //Ask for larger than an exact K value to be allocated. This test makes assumptions on
+  //the internal details of buddy_init.
+  size_t ask = size - sizeof(struct avail) + 1;
+  void *fail = buddy_malloc(&pool, ask);
+  assert(fail == NULL);
+  assert(errno = ENOMEM);
+
+  //Make sure correct kval was allocated
+  buddy_free(&pool, mem);
+  check_buddy_pool_full(&pool);
+  buddy_destroy(&pool);
+}
+
+/**
+ * Test allocating a few blocks of memory. Then free the blocks and 
+ * ensure we end up with a full memory pool again
+ */
+void test_multiple_buddy_malloc(void)
+{
+  fprintf(stderr, "->Test allocating and freeing a few blocks of memory\n");
+  struct buddy_pool pool;
+  int kval = MIN_K;
+  size_t size = UINT64_C(1) << kval;
+  buddy_init(&pool, size);
+  void *mem1 = buddy_malloc(&pool, 1);
+  assert(NULL != mem1);
+  void *mem2 = buddy_malloc(&pool, 9);
+  assert(NULL != mem2);
+  void *mem3 = buddy_malloc(&pool, 2);
+  assert(NULL != mem3);
+  void *mem4 = buddy_malloc(&pool, 13);
+  assert(NULL != mem4);
+
+  assert(mem1 != mem2);
+  assert(mem1 != mem3);
+  assert(mem1 != mem4);
+  assert(mem2 != mem3);
+  assert(mem2 != mem4);
+  assert(mem3 != mem4);
+  //Make sure correct kval was allocated
+  buddy_free(&pool, mem1);
+  buddy_free(&pool, mem2);
+  buddy_free(&pool, mem3);
+  buddy_free(&pool, mem4);
+  check_buddy_pool_full(&pool);
+  buddy_destroy(&pool);
+}
+
+/**
+ * Tests which buddy_mallocs 2 enough space and stores the string "my 
+ * data", then reallocs and the new pointer has the same data.Then free 
+ * the block and ensure we end up with a full memory pool again
+ */
+void test_buddy_realloc_data(void)
+{
+  fprintf(stderr, "->Test data is retained from allocating and reallocating\n");
+  char testString[8] = "my data";
+  struct buddy_pool pool;
+  int kval = DEFAULT_K;
+  size_t size = UINT64_C(1) << kval;
+  buddy_init(&pool, size);
+  void *mem1 = buddy_malloc(&pool, 20);
+  strcpy(mem1, testString);
+  void *mem2 = buddy_realloc(&pool, mem1, 130);
+  assert(NULL != mem2);
+  assert(0 == strcmp(testString, (char *)mem2));
+  //Make sure correct kval was allocated
+  buddy_free(&pool, mem2);
+  check_buddy_pool_full(&pool);
+  buddy_destroy(&pool);
+}
+
+/**
+ * Test which buddy_mallocs 2 bytes, then reallocs one byte on that 
+ * pointer. Test then verifies that the return pointer of the realloc 
+ * is the same as the input. Then free the block and ensure we end up 
+ * with a full memory pool again
+ */
+void test_buddy_realloc_2_to_1_bytes(void)
+{
+  fprintf(stderr, "->Test allocating 2 bytes and reallocating as 1\n");
+  struct buddy_pool pool;
+  int kval = MIN_K;
+  size_t size = UINT64_C(1) << kval;
+  buddy_init(&pool, size);
+  void *mem1 = buddy_malloc(&pool, 2);
+  void *mem2 = buddy_realloc(&pool, mem1, 1);
+  assert(mem1 == mem2);
+  //Make sure correct kval was allocated
+  buddy_free(&pool, mem2);
+  check_buddy_pool_full(&pool);
+  buddy_destroy(&pool);
+}
+
+/**
+ * Test which buddy_mallocs one byte, then reallocs 2 bytes on that 
+ * pointer. Test then verifies that the return pointer of the realloc 
+ * is the same as the input. Then free the block and ensure we end up 
+ * with a full memory pool again
+ */
+void test_buddy_realloc_1_to_2_bytes(void)
+{
+  fprintf(stderr, "->Test allocating 1 byte and reallocating as 2\n");
+  struct buddy_pool pool;
+  int kval = MIN_K;
+  size_t size = UINT64_C(1) << kval;
+  buddy_init(&pool, size);
+  void *mem1 = buddy_malloc(&pool, 1);
+  void *mem2 = buddy_realloc(&pool, mem1, 2);
+  assert(mem1 == mem2);
+  //Make sure correct kval was allocated
+  buddy_free(&pool, mem2);
+  check_buddy_pool_full(&pool);
+  buddy_destroy(&pool);
+}
+
+/**
+ * Test allocating a few blocks of memory. Then reallocating some of 
+ * those blocks and freeing the blocks and ensure we end up with a 
+ * full memory pool again
+ */
+void test_multiple_buddy_malloc_and_realloc(void)
+{
+  fprintf(stderr, "->Test allocating, reallocating and freeing a few blocks of memory\n");
+  struct buddy_pool pool;
+  int kval = MIN_K;
+  size_t size = UINT64_C(1) << kval;
+  buddy_init(&pool, size);
+  void *mem1 = buddy_malloc(&pool, 1);
+  assert(NULL != mem1);
+  void *mem2 = buddy_malloc(&pool, 9);
+  assert(NULL != mem2);
+  void *mem3 = buddy_malloc(&pool, 2);
+  assert(NULL != mem3);
+  mem2 = buddy_realloc(&pool, mem2, 3);
+  assert(NULL != mem2);
+  mem3 = buddy_realloc(&pool, mem3, 100);
+  assert(NULL != mem3);
+  void *mem4 = buddy_malloc(&pool, 13);
+  assert(NULL != mem4);
+
+  assert(mem1 != mem2);
+  assert(mem1 != mem3);
+  assert(mem1 != mem4);
+  assert(mem2 != mem3);
+  assert(mem2 != mem4);
+  assert(mem3 != mem4);
+
+  //Make sure correct kval was allocated
+  buddy_free(&pool, mem1);
+  buddy_free(&pool, mem2);
+  buddy_free(&pool, mem3);
+  buddy_free(&pool, mem4);
+  check_buddy_pool_full(&pool);
+  buddy_destroy(&pool);
+}
+
+/**
  * Tests to make sure that the struct buddy_pool is correct and all fields
  * have been properly set kval_m, avail[kval_m], and base pointer after a
  * call to init
@@ -145,5 +344,12 @@ int main(void) {
   RUN_TEST(test_buddy_init);
   RUN_TEST(test_buddy_malloc_one_byte);
   RUN_TEST(test_buddy_malloc_one_large);
+  RUN_TEST(test_buddy_malloc_one_too_large);
+  RUN_TEST(test_buddy_malloc_one_byte_and_one_too_large);
+  RUN_TEST(test_multiple_buddy_malloc);
+  RUN_TEST(test_buddy_realloc_data);
+  RUN_TEST(test_buddy_realloc_2_to_1_bytes);
+  RUN_TEST(test_buddy_realloc_1_to_2_bytes);
+  RUN_TEST(test_multiple_buddy_malloc_and_realloc);
 return UNITY_END();
 }
